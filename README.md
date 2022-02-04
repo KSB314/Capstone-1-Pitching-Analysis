@@ -19,4 +19,5 @@ Results:
     After checking all the assumptions for the use of the t-test, a t-value and p-value were calculated at 0.59 and 0.55 respectfully. 
     Null hypthesis is accepted, and there is not a statistically significant differnce between left and right handed pitchers. 
     
+    
     According to opposing batting average, the left handed pitcher myth is busted. 
