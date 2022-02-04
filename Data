@@ -1,0 +1,98 @@
+#Find a dataset. Make sure to describe what the data is and why it's interesting.
+#Dataset: The history of statistics in baseball resides at the core of the culture. Beginning with box scores in newspapers, baseball enthusists have 
+#continued to compare statistics, leading to myths about the game. One of which is the assumption of the effectiveness of left handed pitchers being greater than right handed pitchers. 
+#Using Lahmans Pitching .csv dataset, I with test this myth with an experiment. 
+#Will there be a mean difference between Opposing Batting Average of a randomly selected sample of pitchers divided into two groups, left handed and right handed?
+
+import pandas as pd
+import numpy as np
+from scipy import stats
+import seaborn as sns
+sns.set()
+import matplotlib.pyplot as plt
+%matplotlib inline
+master=pd.read_csv('https://raw.githubusercontent.com/vivek2606/baseball/master/data/lahman-csv_2015-01-24/Master.csv')
+batting=pd.read_csv('https://raw.githubusercontent.com/vivek2606/baseball/master/data/lahman-csv_2015-01-24/Batting.csv')
+pitching=pd.read_csv('https://raw.githubusercontent.com/vivek2606/baseball/master/data/lahman-csv_2015-01-24/Pitching.csv')
+
+master.head()
+
+master.columns
+
+master=master.drop(['birthYear', 'birthMonth', 'birthDay', 'birthCountry',
+       'birthState', 'birthCity', 'deathYear', 'deathMonth', 'deathDay',
+       'deathCountry', 'deathState', 'deathCity', 'nameFirst', 'nameLast',
+       'nameGiven', 'weight', 'height', 'bats', 'debut', 'finalGame',
+       'retroID', 'bbrefID'], axis=1)
+
+pitching=pitching[pitching.BAOpp < 1.000]
+pitching=pitching.drop(['yearID', 'stint', 'teamID', 'lgID', 'W', 'L', 'G', 'GS',
+       'CG', 'SHO', 'SV', 'IPouts', 'IBB', 'WP', 'HBP', 'BK', 'BFP', 'GF', 'R', 'SH', 'SF', 'GIDP'], axis=1)
+pitching.BAOpp
+
+pitching.columns
+
+pit_df=pitching.join(master.set_index('playerID'), on='playerID')
+grouped=pit_df.dropna().groupby(pit_df.throws)
+pit_L=grouped.get_group('L').sample(n=1000, replace=True)
+pit_R=grouped.get_group('R').sample(n=1000,replace=True)
+
+pit_L.head()
+
+pit_R.sort_values(by='BAOpp', ascending=False)
+
+pit_L.describe()
+
+pit_R.describe()
+
+sns.histplot(pit_L['BAOpp'],kde=True, stat='probability')
+
+sns.histplot(pit_R['BAOpp'],kde=True, stat='probability')
+
+plt.hist(pit_L['BAOpp'],bins=100, alpha=0.5)
+plt.hist(pit_R['BAOpp'],bins=100, alpha=0.5)
+plt.show
+
+
+
+stats.shapiro(pit_R['BAOpp'])
+
+stats.shapiro(pit_L['BAOpp'])
+
+stats.ttest_ind(pit_R['BAOpp'],pit_L['BAOpp']) #failed t-test, tf difference in mean is not statistically significant. 
+#Support the null hypothesis. According to opposing batting average, handedness of the pitcher does not create an advantage. 
+
+g= sns.pointplot(data=[pit_R['BAOpp'],
+                        pit_L['BAOpp']], join=False)
+g.set(xticklabels = ['Right handed pitchers', 'Left handed pitchers'])
+
+!pip install jupyter-dash 
+
+import dash
+import dash_html_components as html
+
+df = pitching
+
+def generate_table(dataframe, max_rows=10):
+  return html.Table([
+      html.Thead(
+          html.Tr([html.Th(col) for col in dataframe.columns])
+
+      ),
+      html.Tbody([
+          html.Tr([
+              html.Td(dataframe.iloc[i][col]) for col in dataframe.columns     
+          ])for i in range(min(len(dataframe), max_rows))
+      ])
+  ])
+
+app = dash.Dash(__name__)
+
+app.layout = html.Div([
+    html.H4(children='Lehamns Pitching Analysis'),
+    generate_table(df) 
+])
+
+if __name__ == '__main__':
+  app.run_server(debug=True)
+
